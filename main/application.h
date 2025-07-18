@@ -24,6 +24,7 @@
 #include "wake_word.h"
 #include "audio_debugger.h"
 #include "green.h"
+#include "device_state_event.h"
 
 #define SCHEDULE_EVENT (1 << 0)
 #define SEND_AUDIO_EVENT (1 << 1)
@@ -33,20 +34,6 @@ enum AecMode {
     kAecOff,
     kAecOnDeviceSide,
     kAecOnServerSide,
-};
-
-enum DeviceState {
-    kDeviceStateUnknown,
-    kDeviceStateStarting,
-    kDeviceStateWifiConfiguring,
-    kDeviceStateIdle,
-    kDeviceStateConnecting,
-    kDeviceStateListening,
-    kDeviceStateSpeaking,
-    kDeviceStateUpgrading,
-    kDeviceStateActivating,
-    kDeviceStateAudioTesting,
-    kDeviceStateFatalError
 };
 
 #define OPUS_FRAME_DURATION_MS 60
