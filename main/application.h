@@ -90,6 +90,7 @@ private:
     ~Application();
 
     int speak_count = GreenConfig::SPEAK_COUNT;
+    bool query_flag = GreenConfig::QUERY_FLAG;
 
     std::unique_ptr<WakeWord> wake_word_;
     std::unique_ptr<AudioProcessor> audio_processor_;

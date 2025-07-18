@@ -679,6 +679,7 @@ void Application::Start() {
                 }
 
                 speak_count = 0;
+                query_flag = true;
                 ESP_LOGI(TAG, "Wake word detected: %s", wake_word.c_str());
 #if CONFIG_USE_AFE_WAKE_WORD
                 AudioStreamPacket packet;
@@ -686,8 +687,17 @@ void Application::Start() {
                 while (wake_word_->GetWakeWordOpus(packet.payload)) {
                     protocol_->SendAudio(packet);
                 }
-                // Set the chat state to wake word detected
-                protocol_->SendWakeWordDetected(wake_word);
+                // 第一次对话先查询所有设备
+                if (query_flag) {
+                    query_flag = false;
+                    // 直接修改wake_word来追加指令
+                    std::string wake_word_cust = wake_word + GreenConfig::QUERY_PROMPT;
+                    // Set the chat state to wake word detected
+                    protocol_->SendWakeWordDetected(wake_word_cust);
+                } else {
+                    // Set the chat state to wake word detected
+                    protocol_->SendWakeWordDetected(wake_word);
+                }
 #else
                 // Play the pop up sound to indicate the wake word is detected
                 // And wait 60ms to make sure the queue has been processed by audio task
