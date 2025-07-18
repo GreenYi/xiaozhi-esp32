@@ -523,8 +523,13 @@ void Application::Start() {
             } else if (strcmp(state->valuestring, "stop") == 0) {
                 Schedule([this]() {
                     background_task_->WaitForCompletion();
+                    speak_count++;
                     if (device_state_ == kDeviceStateSpeaking) {
-                        if (listening_mode_ == kListeningModeManualStop) {
+                        ESP_LOGI(TAG, "Greenyi 530: speak_count: %d", speak_count);
+                        // 新增判断：当speak_count大于等于SPEAK_COUNT_STOP时设置设备状态为空闲
+                        if (speak_count >= GreenConfig::SPEAK_COUNT_STOP) {
+                            SetDeviceState(kDeviceStateIdle);
+                        } else if (listening_mode_ == kListeningModeManualStop) {
                             SetDeviceState(kDeviceStateIdle);
                         } else {
                             SetDeviceState(kDeviceStateListening);
@@ -673,6 +678,7 @@ void Application::Start() {
                     }
                 }
 
+                speak_count = 0;
                 ESP_LOGI(TAG, "Wake word detected: %s", wake_word.c_str());
 #if CONFIG_USE_AFE_WAKE_WORD
                 AudioStreamPacket packet;

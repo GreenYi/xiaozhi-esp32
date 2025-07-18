@@ -23,6 +23,7 @@
 #include "audio_processor.h"
 #include "wake_word.h"
 #include "audio_debugger.h"
+#include "green.h"
 
 #define SCHEDULE_EVENT (1 << 0)
 #define SEND_AUDIO_EVENT (1 << 1)
@@ -87,6 +88,8 @@ public:
 private:
     Application();
     ~Application();
+
+    int speak_count = GreenConfig::SPEAK_COUNT;
 
     std::unique_ptr<WakeWord> wake_word_;
     std::unique_ptr<AudioProcessor> audio_processor_;
