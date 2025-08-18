@@ -2,6 +2,12 @@
 
 （中文 | [English](README_en.md) | [日本語](README_ja.md)）
 
+## Green修改记录
+### v1.0.0
+- 默认音量80
+- 增加自定义对话N轮后设置设备状态为空闲
+- 增加第一次对话自定义提示语，实现叫小爱同学时查询ha所有设备
+
 ## 视频
 
 👉 [人类：给 AI 装摄像头 vs AI：当场发现主人三天没洗头【bilibili】](https://www.bilibili.com/video/BV1bpjgzKEhd/)
