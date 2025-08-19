@@ -4,6 +4,7 @@
 #include "system_info.h"
 #include "audio_codec.h"
 #include "mqtt_protocol.h"
+#include "green_mqtt.h"
 #include "websocket_protocol.h"
 #include "font_awesome_symbols.h"
 #include "assets/lang_config.h"
@@ -416,7 +417,7 @@ void Application::Start() {
                 Schedule([this]() {
                     speak_count++;
                     if (device_state_ == kDeviceStateSpeaking) {
-                        ESP_LOGI(TAG, "Greenyi 530: speak_count: %d", speak_count);
+                        ESP_LOGI(TAG, "Greenyi: speak_count: %d", speak_count);
                         // 新增判断：当speak_count大于等于SPEAK_COUNT_STOP时设置设备状态为空闲
                         if (speak_count >= GreenConfig::SPEAK_COUNT_STOP) {
                             SetDeviceState(kDeviceStateIdle);
@@ -440,6 +441,10 @@ void Application::Start() {
             auto text = cJSON_GetObjectItem(root, "text");
             if (cJSON_IsString(text)) {
                 ESP_LOGI(TAG, ">> %s", text->valuestring);
+                // 不包含唤醒词，将识别到的文本发布到MQTT
+                if (speak_count >= 1) {
+                    GreenMqtt::Instance().Publish(text->valuestring);
+                } 
                 Schedule([this, display, message = std::string(text->valuestring)]() {
                     display->SetChatMessage("user", message.c_str());
                 });
@@ -601,8 +606,8 @@ void Application::OnWakeWordDetected() {
             }
         }
 
-        speak_count = 0;
-        query_flag = true;
+        speak_count = GreenConfig::SPEAK_COUNT;
+        query_flag = GreenConfig::QUERY_FLAG;
         auto wake_word = audio_service_.GetLastWakeWord();
         ESP_LOGI(TAG, "Wake word detected: %s", wake_word.c_str());
 #if CONFIG_USE_AFE_WAKE_WORD || CONFIG_USE_CUSTOM_WAKE_WORD
