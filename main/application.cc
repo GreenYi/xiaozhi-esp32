@@ -4,6 +4,7 @@
 #include "system_info.h"
 #include "audio_codec.h"
 #include "mqtt_protocol.h"
+#include "green_mqtt.h"
 #include "websocket_protocol.h"
 #include "font_awesome_symbols.h"
 #include "assets/lang_config.h"
@@ -85,9 +86,9 @@ void Application::CheckNewVersion(Ota& ota) {
                 return;
             }
 
-            char buffer[128];
+            char buffer[256];
             snprintf(buffer, sizeof(buffer), Lang::Strings::CHECK_NEW_VERSION_FAILED, retry_delay, ota.GetCheckVersionUrl().c_str());
-            Alert(Lang::Strings::ERROR, buffer, "sad", Lang::Sounds::P3_EXCLAMATION);
+            Alert(Lang::Strings::ERROR, buffer, "sad", Lang::Sounds::OGG_EXCLAMATION);
 
             ESP_LOGW(TAG, "Check new version failed, retry in %d seconds (%d/%d)", retry_delay, retry_count, MAX_RETRY);
             for (int i = 0; i < retry_delay; i++) {
@@ -103,7 +104,7 @@ void Application::CheckNewVersion(Ota& ota) {
         retry_delay = 10; // 重置重试延迟时间
 
         if (ota.HasNewVersion()) {
-            Alert(Lang::Strings::OTA_UPGRADE, Lang::Strings::UPGRADING, "happy", Lang::Sounds::P3_UPGRADE);
+            Alert(Lang::Strings::OTA_UPGRADE, Lang::Strings::UPGRADING, "happy", Lang::Sounds::OGG_UPGRADE);
 
             vTaskDelay(pdMS_TO_TICKS(3000));
 
@@ -118,9 +119,11 @@ void Application::CheckNewVersion(Ota& ota) {
             vTaskDelay(pdMS_TO_TICKS(1000));
 
             bool upgrade_success = ota.StartUpgrade([display](int progress, size_t speed) {
-                char buffer[64];
-                snprintf(buffer, sizeof(buffer), "%d%% %uKB/s", progress, speed / 1024);
-                display->SetChatMessage("system", buffer);
+                std::thread([display, progress, speed]() {
+                    char buffer[32];
+                    snprintf(buffer, sizeof(buffer), "%d%% %uKB/s", progress, speed / 1024);
+                    display->SetChatMessage("system", buffer);
+                }).detach();
             });
 
             if (!upgrade_success) {
@@ -128,7 +131,7 @@ void Application::CheckNewVersion(Ota& ota) {
                 ESP_LOGE(TAG, "Firmware upgrade failed, restarting audio service and continuing operation...");
                 audio_service_.Start(); // Restart audio service
                 board.SetPowerSaveMode(true); // Restore power save mode
-                Alert(Lang::Strings::ERROR, Lang::Strings::UPGRADE_FAILED, "sad", Lang::Sounds::P3_EXCLAMATION);
+                Alert(Lang::Strings::ERROR, Lang::Strings::UPGRADE_FAILED, "sad", Lang::Sounds::OGG_EXCLAMATION);
                 vTaskDelay(pdMS_TO_TICKS(3000));
                 // Continue to normal operation (don't break, just fall through)
             } else {
@@ -180,20 +183,20 @@ void Application::ShowActivationCode(const std::string& code, const std::string&
         const std::string_view& sound;
     };
     static const std::array<digit_sound, 10> digit_sounds{{
-        digit_sound{'0', Lang::Sounds::P3_0},
-        digit_sound{'1', Lang::Sounds::P3_1}, 
-        digit_sound{'2', Lang::Sounds::P3_2},
-        digit_sound{'3', Lang::Sounds::P3_3},
-        digit_sound{'4', Lang::Sounds::P3_4},
-        digit_sound{'5', Lang::Sounds::P3_5},
-        digit_sound{'6', Lang::Sounds::P3_6},
-        digit_sound{'7', Lang::Sounds::P3_7},
-        digit_sound{'8', Lang::Sounds::P3_8},
-        digit_sound{'9', Lang::Sounds::P3_9}
+        digit_sound{'0', Lang::Sounds::OGG_0},
+        digit_sound{'1', Lang::Sounds::OGG_1}, 
+        digit_sound{'2', Lang::Sounds::OGG_2},
+        digit_sound{'3', Lang::Sounds::OGG_3},
+        digit_sound{'4', Lang::Sounds::OGG_4},
+        digit_sound{'5', Lang::Sounds::OGG_5},
+        digit_sound{'6', Lang::Sounds::OGG_6},
+        digit_sound{'7', Lang::Sounds::OGG_7},
+        digit_sound{'8', Lang::Sounds::OGG_8},
+        digit_sound{'9', Lang::Sounds::OGG_9}
     }};
 
     // This sentence uses 9KB of SRAM, so we need to wait for it to finish
-    Alert(Lang::Strings::ACTIVATION, message.c_str(), "happy", Lang::Sounds::P3_ACTIVATION);
+    Alert(Lang::Strings::ACTIVATION, message.c_str(), "happy", Lang::Sounds::OGG_ACTIVATION);
 
     for (const auto& digit : code) {
         auto it = std::find_if(digit_sounds.begin(), digit_sounds.end(),
@@ -416,7 +419,7 @@ void Application::Start() {
                 Schedule([this]() {
                     speak_count++;
                     if (device_state_ == kDeviceStateSpeaking) {
-                        ESP_LOGI(TAG, "Greenyi 530: speak_count: %d", speak_count);
+                        ESP_LOGI(TAG, "Greenyi: speak_count: %d", speak_count);
                         // 新增判断：当speak_count大于等于SPEAK_COUNT_STOP时设置设备状态为空闲
                         if (speak_count >= GreenConfig::SPEAK_COUNT_STOP) {
                             SetDeviceState(kDeviceStateIdle);
@@ -440,6 +443,10 @@ void Application::Start() {
             auto text = cJSON_GetObjectItem(root, "text");
             if (cJSON_IsString(text)) {
                 ESP_LOGI(TAG, ">> %s", text->valuestring);
+                // 不包含唤醒词，将识别到的文本发布到MQTT
+                if (speak_count >= 1) {
+                    GreenMqtt::Instance().Publish(text->valuestring);
+                } 
                 Schedule([this, display, message = std::string(text->valuestring)]() {
                     display->SetChatMessage("user", message.c_str());
                 });
@@ -474,7 +481,7 @@ void Application::Start() {
             auto message = cJSON_GetObjectItem(root, "message");
             auto emotion = cJSON_GetObjectItem(root, "emotion");
             if (cJSON_IsString(status) && cJSON_IsString(message) && cJSON_IsString(emotion)) {
-                Alert(status->valuestring, message->valuestring, emotion->valuestring, Lang::Sounds::P3_VIBRATION);
+                Alert(status->valuestring, message->valuestring, emotion->valuestring, Lang::Sounds::OGG_VIBRATION);
             } else {
                 ESP_LOGW(TAG, "Alert command requires status, message and emotion");
             }
@@ -504,14 +511,11 @@ void Application::Start() {
         display->ShowNotification(message.c_str());
         display->SetChatMessage("system", "");
         // Play the success sound to indicate the device is ready
-        audio_service_.PlaySound(Lang::Sounds::P3_SUCCESS);
+        audio_service_.PlaySound(Lang::Sounds::OGG_SUCCESS);
     }
 
     // Print heap stats
     SystemInfo::PrintHeapStats();
-    
-    // Enter the main event loop
-    MainEventLoop();
 }
 
 void Application::OnClockTimer() {
@@ -552,7 +556,7 @@ void Application::MainEventLoop() {
             MAIN_EVENT_ERROR, pdTRUE, pdFALSE, portMAX_DELAY);
         if (bits & MAIN_EVENT_ERROR) {
             SetDeviceState(kDeviceStateIdle);
-            Alert(Lang::Strings::ERROR, last_error_message_.c_str(), "sad", Lang::Sounds::P3_EXCLAMATION);
+            Alert(Lang::Strings::ERROR, last_error_message_.c_str(), "sad", Lang::Sounds::OGG_EXCLAMATION);
         }
 
         if (bits & MAIN_EVENT_SEND_AUDIO) {
@@ -601,8 +605,8 @@ void Application::OnWakeWordDetected() {
             }
         }
 
-        speak_count = 0;
-        query_flag = true;
+        speak_count = GreenConfig::SPEAK_COUNT;
+        query_flag = GreenConfig::QUERY_FLAG;
         auto wake_word = audio_service_.GetLastWakeWord();
         ESP_LOGI(TAG, "Wake word detected: %s", wake_word.c_str());
 #if CONFIG_USE_AFE_WAKE_WORD || CONFIG_USE_CUSTOM_WAKE_WORD
@@ -625,7 +629,7 @@ void Application::OnWakeWordDetected() {
 #else
         SetListeningMode(aec_mode_ == kAecOff ? kListeningModeAutoStop : kListeningModeRealtime);
         // Play the pop up sound to indicate the wake word is detected
-        audio_service_.PlaySound(Lang::Sounds::P3_POPUP);
+        audio_service_.PlaySound(Lang::Sounds::OGG_POPUP);
 #endif
     } else if (device_state_ == kDeviceStateSpeaking) {
         AbortSpeaking(kAbortReasonWakeWordDetected);
