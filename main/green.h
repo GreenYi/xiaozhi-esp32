@@ -16,8 +16,14 @@ namespace GreenConfig {
     constexpr int MQTT_SERVER_PORT = 1883;
     constexpr const char* MQTT_CLIENT_ID = "green_esp32s3_mqtt";
     constexpr const char* MQTT_TOPIC = "green/text/yx/xayxzx/command";
+    // 小爱音箱回复
+    constexpr const char* MQTT_TOPIC_XATXHF = "green/text/yx/xayxhf/state";
     // 防止频繁重连
     constexpr int MQTT_RECONNECT_DELAY_MS = 5000;
+
+    // TTS配置
+    // TODO TTS API_KEY
+    constexpr const char* API_KEY = "todo";
 }
 
 #endif // _GREEN_H_
