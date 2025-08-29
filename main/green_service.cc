@@ -30,8 +30,8 @@ bool GreenService::SendTTSRequest(const std::string& text, std::string& response
     // 准备请求体
     std::string payload = "{\"req_params\": {\"text\": \"" + text + "\", "
                           "\"speaker\": \"zh_female_kefunvsheng_mars_bigtts\", "
-                          "\"additions\": \"{\\\"disable_markdown_filter\\\":true,\\\"silence_duration\\\":500,\\\"enable_language_detector\\\":true,\\\"enable_latex_tn\\\":true,\\\"disable_default_bit_rate\\\":true,\\\"max_length_to_filter_parenthesis\\\":0,\\\"cache_config\\\":{\\\"text_type\\\":1,\\\"use_cache\\\":true}}\", "
-                          "\"audio_params\": {\"format\": \"ogg_opus\", \"sample_rate\": 24000, \"loudness_rate\": 50}}}";
+                          "\"additions\": \"{\\\"disable_markdown_filter\\\":true,\\\"silence_duration\\\":" + GreenConfig::SILENCE + ",\\\"enable_language_detector\\\":true,\\\"enable_latex_tn\\\":true,\\\"disable_default_bit_rate\\\":true,\\\"max_length_to_filter_parenthesis\\\":0,\\\"cache_config\\\":{\\\"text_type\\\":1,\\\"use_cache\\\":true}}\", "
+                          "\"audio_params\": {\"format\": \"ogg_opus\", \"sample_rate\": 24000, \"loudness_rate\": " + GreenConfig::LOUDNESS + "}}}";
     // 设置请求头
     http->SetHeader("x-api-key", GreenConfig::API_KEY);
     http->SetHeader("X-Api-Resource-Id", "volc.service_type.10029");
@@ -90,18 +90,18 @@ std::vector<uint8_t> GreenService::ParseAudioData(const std::string& response) {
         if (line.empty()) continue;
         cJSON* root = cJSON_Parse(line.c_str());
         if (root == nullptr) {
-            ESP_LOGE("Audio", "Failed to parse JSON line: %s", line.c_str());
-             return {};
+            ESP_LOGE(TAG, "Failed to parse JSON line: %s", line.c_str());
+            return {};
         }
         // 检查code
         cJSON* codeItem = cJSON_GetObjectItem(root, "code");
         if (!codeItem || !cJSON_IsNumber(codeItem)) {
-            ESP_LOGE("Audio", "Invalid or missing code field");
+            ESP_LOGE(TAG, "Invalid or missing code field");
             cJSON_Delete(root);
-             return {};
+            return {};
         }
         int code = codeItem->valueint;
-        if (code != 0) {
+        if (code != 0 && code != 20000000) {
             ESP_LOGE(TAG, "parseAudioData code != 0: %d", code);
             cJSON_Delete(root);
             // 如果遇到非0的code，可以选择继续或中断
@@ -111,14 +111,14 @@ std::vector<uint8_t> GreenService::ParseAudioData(const std::string& response) {
         cJSON* data = cJSON_GetObjectItem(root, "data");
         if (data == nullptr) {
             cJSON_Delete(root);
-            break; // 遇到data为null时停止
+            continue; // 遇到data为null时继续
         }
         if (cJSON_IsString(data)) {
             std::string base64Data = data->valuestring;
             // 调用解码方法
             auto decodedAudio = DecodeBase64Audio(base64Data);
             if (decodedAudio.empty()) {
-                ESP_LOGE("Audio", "Failed to decode audio data");
+                ESP_LOGE(TAG, "Failed to decode audio data");
             } else {
                 // 将解码后的数据拼接到总数据中
                 combinedAudioData.insert(combinedAudioData.end(), 
@@ -126,7 +126,7 @@ std::vector<uint8_t> GreenService::ParseAudioData(const std::string& response) {
             }
         } else if (cJSON_IsNull(data)) {
             cJSON_Delete(root);
-            break; // 遇到data为null时停止
+            continue; // 遇到data为null时继续
         } else {
             ESP_LOGE(TAG, "parseAudioData data is not string or null: %s", cJSON_Print(data));
         }

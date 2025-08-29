@@ -24,6 +24,10 @@ namespace GreenConfig {
     // TTS配置
     // TODO TTS API_KEY
     constexpr const char* API_KEY = "todo";
+    // 设置该参数可在句尾增加静音时长，范围0~30000ms。（注：增加的句尾静音主要针对传入文本最后的句尾，而非每句话的句尾）
+    constexpr const int SILENCE = 0;
+    // 音量，取值范围[-50,100]，100代表2.0倍音量，-50代表0.5倍音量（mix音色暂不支持）
+    constexpr const int LOUDNESS = 50;
 }
 
 #endif // _GREEN_H_
