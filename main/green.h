@@ -16,8 +16,18 @@ namespace GreenConfig {
     constexpr int MQTT_SERVER_PORT = 1883;
     constexpr const char* MQTT_CLIENT_ID = "green_esp32s3_mqtt";
     constexpr const char* MQTT_TOPIC = "green/text/yx/xayxzx/command";
+    // 小爱音箱回复
+    constexpr const char* MQTT_TOPIC_XATXHF = "green/text/yx/xayxhf/state";
     // 防止频繁重连
     constexpr int MQTT_RECONNECT_DELAY_MS = 5000;
+
+    // TTS配置
+    // TODO TTS API_KEY
+    constexpr const char* API_KEY = "todo";
+    // 设置该参数可在句尾增加静音时长，范围0~30000ms。（注：增加的句尾静音主要针对传入文本最后的句尾，而非每句话的句尾）
+    constexpr const char* SILENCE = "0";
+    // 音量，取值范围[-50,100]，100代表2.0倍音量，-50代表0.5倍音量（mix音色暂不支持）
+    constexpr const char* LOUDNESS = "50";
 }
 
 #endif // _GREEN_H_

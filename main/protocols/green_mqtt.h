@@ -11,8 +11,14 @@ class GreenMqtt {
 public:
     static GreenMqtt& Instance();
 
+    // 发布主题
     bool Publish(const char* message);
+    // 发布主题
     bool Publish(const char* topic, const char* message);
+    // 订阅主题
+    bool Subscribe(const char* topic);
+    // 消息回调方法
+    void MessageReceived(const char* topic, const char* message);
 
 private:
     GreenMqtt() = default;
@@ -22,6 +28,7 @@ private:
     GreenMqtt(const GreenMqtt&) = delete;
     GreenMqtt& operator=(const GreenMqtt&) = delete;
 
+    // 确认MQTT已连接
     bool EnsureConnected();
 
     std::unique_ptr<Mqtt> mqtt_;

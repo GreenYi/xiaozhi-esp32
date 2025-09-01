@@ -385,7 +385,10 @@ void Application::Start() {
     });
     protocol_->OnIncomingAudio([this](std::unique_ptr<AudioStreamPacket> packet) {
         if (device_state_ == kDeviceStateSpeaking) {
-            audio_service_.PushPacketToDecodeQueue(std::move(packet));
+            // 第0次，唤醒词使用小智服务端的语音回复，其他的使用小爱音箱的回复
+           if (speak_count == 0) {
+                audio_service_.PushPacketToDecodeQueue(std::move(packet));
+            }
         }
     });
     protocol_->OnAudioChannelOpened([this, codec, &board]() {
@@ -417,36 +420,47 @@ void Application::Start() {
                 });
             } else if (strcmp(state->valuestring, "stop") == 0) {
                 Schedule([this]() {
-                    speak_count++;
-                    if (device_state_ == kDeviceStateSpeaking) {
+                    // 第0次，唤醒词使用小智服务端的语音回复，其他的使用小爱音箱的回复
+                    if (speak_count == 0) {
+                        // 小爱音箱回复后更新状态see GreenService.SetDeviceState()
+                        speak_count++;
                         ESP_LOGI(TAG, "Greenyi: speak_count: %d", speak_count);
-                        // 新增判断：当speak_count大于等于SPEAK_COUNT_STOP时设置设备状态为空闲
-                        if (speak_count >= GreenConfig::SPEAK_COUNT_STOP) {
-                            SetDeviceState(kDeviceStateIdle);
-                        } else if (listening_mode_ == kListeningModeManualStop) {
-                            SetDeviceState(kDeviceStateIdle);
-                        } else {
-                            SetDeviceState(kDeviceStateListening);
+                        if (device_state_ == kDeviceStateSpeaking) {
+                            // 新增判断：当speak_count大于等于SPEAK_COUNT_STOP时设置设备状态为空闲
+                            if (speak_count >= GreenConfig::SPEAK_COUNT_STOP) {
+                                SetDeviceState(kDeviceStateIdle);
+                            } else if (listening_mode_ == kListeningModeManualStop) {
+                                SetDeviceState(kDeviceStateIdle);
+                            } else {
+                                SetDeviceState(kDeviceStateListening);
+                            }
                         }
                     }
                 });
             } else if (strcmp(state->valuestring, "sentence_start") == 0) {
                 auto text = cJSON_GetObjectItem(root, "text");
                 if (cJSON_IsString(text)) {
-                    ESP_LOGI(TAG, "<< %s", text->valuestring);
-                    Schedule([this, display, message = std::string(text->valuestring)]() {
-                        display->SetChatMessage("assistant", message.c_str());
-                    });
+                    // 第0次，唤醒词使用小智服务端的语音回复，其他的使用小爱音箱的回复
+                    if (speak_count == 0) {
+                        ESP_LOGI(TAG, "<< %s", text->valuestring);
+                        Schedule([this, display, message = std::string(text->valuestring)]() {
+                            display->SetChatMessage("assistant", message.c_str());
+                        });
+                    }
                 }
             }
         } else if (strcmp(type->valuestring, "stt") == 0) {
             auto text = cJSON_GetObjectItem(root, "text");
             if (cJSON_IsString(text)) {
-                ESP_LOGI(TAG, ">> %s", text->valuestring);
                 // 不包含唤醒词，将识别到的文本发布到MQTT
                 if (speak_count >= 1) {
+                    // 将回复置空，不然容易获取上一次的回复
+                    GreenMqtt::Instance().Publish(GreenConfig::MQTT_TOPIC_XATXHF, "");
+                    // 发布文本
                     GreenMqtt::Instance().Publish(text->valuestring);
-                } 
+                } else {
+                    ESP_LOGI(TAG, ">> %s", text->valuestring);
+                }
                 Schedule([this, display, message = std::string(text->valuestring)]() {
                     display->SetChatMessage("user", message.c_str());
                 });
