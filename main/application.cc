@@ -457,8 +457,6 @@ void Application::Start() {
             if (cJSON_IsString(text)) {
                 // 不包含唤醒词，将识别到的文本发布到MQTT
                 if (speak_count >= 1) {
-                    // 将回复置空，不然容易获取上一次的回复
-                    GreenMqtt::Instance().Publish(GreenConfig::MQTT_TOPIC_XATXHF, "");
                     // 发布文本
                     GreenMqtt::Instance().Publish(text->valuestring);
                 } else {
