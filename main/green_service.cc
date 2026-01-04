@@ -22,39 +22,64 @@ bool GreenService::SetChatMessage(const std::string& message) {
 }
 
 bool GreenService::SendTTSRequest(const std::string& text, std::string& response) {
-    // 获取 Board 实例并创建 HTTP 客户端
+    ESP_LOGI(TAG, "SendTTSRequest start, text len=%d", text.length());
+
+    // 获取 Board 实例并创建 HTTP 客户端，同时关闭连接复用避免 ReadAll 等待 EOF
     auto& board = Board::GetInstance();
     auto http = board.GetNetwork()->CreateHttp(0);
-    // 构造 URL 和请求头部
+    // 构造 URL 和请求体
     std::string url = "https://openspeech.bytedance.com/api/v3/tts/unidirectional";
-    // 准备请求体
     std::string payload = "{\"req_params\": {\"text\": \"" + text + "\", "
                           "\"speaker\": \"zh_female_kefunvsheng_mars_bigtts\", "
                           "\"additions\": \"{\\\"disable_markdown_filter\\\":true,\\\"silence_duration\\\":" + GreenConfig::SILENCE + ",\\\"enable_language_detector\\\":true,\\\"enable_latex_tn\\\":true,\\\"disable_default_bit_rate\\\":true,\\\"max_length_to_filter_parenthesis\\\":0,\\\"cache_config\\\":{\\\"text_type\\\":1,\\\"use_cache\\\":true}}\", "
                           "\"audio_params\": {\"format\": \"ogg_opus\", \"sample_rate\": 24000, \"loudness_rate\": " + GreenConfig::LOUDNESS + "}}}";
+    ESP_LOGI(TAG, "HTTP POST URL: %s", url.c_str());
+    ESP_LOGI(TAG, "HTTP payload: %s", payload.c_str());
+    // 关闭连接复用，避免 ReadAll 等待 EOF
+    http->SetKeepAlive(false);
     // 设置请求头
     http->SetHeader("x-api-key", GreenConfig::API_KEY);
     http->SetHeader("X-Api-Resource-Id", "volc.service_type.10029");
-    http->SetHeader("Connection", "keep-alive");
     http->SetHeader("Content-Type", "application/json");
     // 设置请求体
     http->SetContent(payload.c_str());
     // 打开连接并发送请求
+    ESP_LOGI(TAG, "Opening HTTP connection...");
     if (!http->Open("POST", url)) {
-        ESP_LOGE("HTTP", "Failed to open HTTP connection");
+        ESP_LOGE(TAG, "Failed to open HTTP connection");
         return false;
     }
     // 获取响应状态码
-    auto status_code = http->GetStatusCode();
+    int status_code = http->GetStatusCode();
+    ESP_LOGI(TAG, "HTTP status code: %d", status_code);
     if (status_code != 200) {
-        ESP_LOGE("HTTP", "Failed to send request, status code: %d", status_code);
+        ESP_LOGE(TAG, "Unexpected status code %d", status_code);
+        http->Close();
         return false;
     }
     // 读取响应数据
-    response = http->ReadAll();
+    std::string body;
+    constexpr size_t kReadBufferSize = 512;
+    std::vector<char> read_buffer(kReadBufferSize);
+
+    while (true) {
+        int len = http->Read(read_buffer.data(), read_buffer.size());
+        if (len < 0) {
+            ESP_LOGE(TAG, "Failed to read HTTP response");
+            http->Close();
+            return false;
+        }
+        if (len == 0) {
+            break;
+        }
+        body.append(read_buffer.data(), len);
+    }
+
+    response = std::move(body);
+    ESP_LOGI(TAG, "Response length: %d", response.length());
     http->Close();
     // 调试输出响应数据
-    ESP_LOGI("HTTP", "Response OK");
+    ESP_LOGI(TAG, "SendTTSRequest succeeded");
     return true;
 }
 
@@ -219,3 +244,4 @@ bool GreenService::Process(const std::string& text) {
 
     return true;
 }
+
