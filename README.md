@@ -17,6 +17,7 @@
 - 合并上游v2.0.5版本，兼容新的HttpClient
 ### v1.0.4
 - 合并上游v2.1.0版本
+- 提前合并[PR/1675](https://github.com/78/xiaozhi-esp32/pull/1675)，修复[issues/1665](https://github.com/78/xiaozhi-esp32/issues/1665) 末尾几个字播放不全 会被打断
 
 ## 介绍
 
