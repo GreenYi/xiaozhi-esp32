@@ -9,6 +9,7 @@
 
 #include "application.h"
 #include "system_info.h"
+#include "green_mqtt.h"
 
 #define TAG "main"
 
@@ -26,6 +27,8 @@ extern "C" void app_main(void)
     // Initialize and run the application
     auto& app = Application::GetInstance();
     app.Initialize();
+    // 30 秒后异步初始化连接
+    GreenMqtt::Instance().ScheduleConnectAfterDelay(30 * 1000);
     app.Run();  // This function runs the main event loop and never returns
 
     // ***远程测试***

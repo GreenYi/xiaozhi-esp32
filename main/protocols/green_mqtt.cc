@@ -95,3 +95,26 @@ bool GreenMqtt::EnsureConnected() {
     Subscribe(GreenConfig::MQTT_TOPIC_XATXHF);
     return true;
 }
+
+static void ConnectMqttTimerCallback(void* arg)
+{
+    ESP_LOGI(TAG, "Delay elapsed, connecting to MQTT...");
+    GreenMqtt::Instance().EnsureConnected();
+}
+
+void GreenMqtt::ScheduleConnectAfterDelay(uint64_t delay_ms)
+{
+    esp_timer_create_args_t timer_args = {
+        .callback = &ConnectMqttTimerCallback,
+        .arg = nullptr,
+        .dispatch_method = ESP_TIMER_TASK,
+        .name = "mqtt_connect_timer"
+    };
+    esp_timer_handle_t connect_timer = nullptr;
+    esp_err_t err = esp_timer_create(&timer_args, &connect_timer);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to create MQTT connect timer: %s", esp_err_to_name(err));
+        return;
+    }
+    ESP_ERROR_CHECK(esp_timer_start_once(connect_timer, delay_ms * 1000));
+}
