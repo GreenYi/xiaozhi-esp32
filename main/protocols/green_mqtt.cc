@@ -41,7 +41,7 @@ bool GreenMqtt::Subscribe(const char* topic) {
         return false;
     }
     // 订阅主题
-    if (!mqtt_->Subscribe(topic, 0)) {
+    if (!mqtt_->Subscribe(topic, 2)) {
         // 即使Subscribe返回false，也订阅成功了的
         // ESP_LOGE(TAG, "Subscribe failed to %s", topic);
         // return false;

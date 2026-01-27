@@ -189,10 +189,7 @@ bool GreenService::SetDeviceState() {
                 if (app.speak_count >= GreenConfig::SPEAK_COUNT_STOP) {
                     // 在自动模式下，等待播放队列变为空后再启用语音处理
                     // 这可以防止因网络抖动导致 STOP 到达过晚时音频被截断
-                    // 等待音频播放完成
-                    while (!app.GetAudioService().IsPlaybackQueueEmpty()) {
-                        vTaskDelay(pdMS_TO_TICKS(20));
-                    }
+                    app.GetAudioService().WaitForPlaybackQueueEmpty();
                     app.SetDeviceState(kDeviceStateIdle);
                 } else {
                     app.SetDeviceState(kDeviceStateListening);
