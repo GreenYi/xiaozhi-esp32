@@ -861,7 +861,7 @@ void Application::HandleStateChangedEvent() {
                 if (listening_mode_ == kListeningModeAutoStop) {
                     audio_service_.WaitForPlaybackQueueEmpty();
                 }
-
+                
                 // Send the start listening command
                 protocol_->SendStartListening(listening_mode_);
                 audio_service_.EnableVoiceProcessing(true);

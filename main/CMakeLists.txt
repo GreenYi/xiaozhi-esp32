@@ -222,6 +222,11 @@ elseif(CONFIG_BOARD_TYPE_ESP_KORVO2_V3)
     set(BUILTIN_TEXT_FONT font_puhui_basic_20_4)
     set(BUILTIN_ICON_FONT font_awesome_20_4)
     set(DEFAULT_EMOJI_COLLECTION twemoji_64)
+elseif(CONFIG_BOARD_TYPE_ESP_KORVO2_V3_RNDIS)
+    set(BOARD_TYPE "esp32s3-korvo2-v3-rndis")
+    set(BUILTIN_TEXT_FONT font_puhui_basic_20_4)
+    set(BUILTIN_ICON_FONT font_awesome_20_4)
+    set(DEFAULT_EMOJI_COLLECTION twemoji_64)
 elseif(CONFIG_BOARD_TYPE_ESP_SPARKBOT)
     set(BOARD_TYPE "esp-sparkbot")
     set(BUILTIN_TEXT_FONT font_puhui_basic_20_4)
@@ -554,6 +559,16 @@ elseif(CONFIG_BOARD_TYPE_ZHENGCHEN_1_54TFT_ML307)
     set(BUILTIN_TEXT_FONT font_puhui_basic_20_4)
     set(BUILTIN_ICON_FONT font_awesome_20_4)
     set(DEFAULT_EMOJI_COLLECTION twemoji_64)
+elseif(CONFIG_BOARD_TYPE_ZHENGCHEN_CAM)
+    set(BOARD_TYPE "zhengchen-cam")
+    set(BUILTIN_TEXT_FONT font_puhui_basic_20_4)
+    set(BUILTIN_ICON_FONT font_awesome_20_4)
+    set(DEFAULT_EMOJI_COLLECTION twemoji_64)
+elseif(CONFIG_BOARD_TYPE_ZHENGCHEN_CAM_ML307)
+    set(BOARD_TYPE "zhengchen-cam-ml307")
+    set(BUILTIN_TEXT_FONT font_puhui_basic_20_4)
+    set(BUILTIN_ICON_FONT font_awesome_20_4)
+    set(DEFAULT_EMOJI_COLLECTION twemoji_64)    
 elseif(CONFIG_BOARD_TYPE_SPOTPEAR_ESP32_S3_1_54_MUMA)
     set(BOARD_TYPE "sp-esp32-s3-1.54-muma")
     set(BUILTIN_TEXT_FONT font_puhui_basic_16_4)
@@ -791,6 +806,7 @@ idf_component_register(SRCS ${SOURCES}
                         spi_flash
                         console
                         efuse
+                        bt
                     )
 
 # Use target_compile_definitions to define BOARD_TYPE, BOARD_NAME
