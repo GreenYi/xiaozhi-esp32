@@ -19,6 +19,10 @@ public:
     bool Subscribe(const char* topic);
     // 消息回调方法
     void MessageReceived(const char* topic, const char* message);
+    // 确认MQTT已连接
+    bool EnsureConnected();
+    // 异步延迟初始化连接
+    void ScheduleConnectAfterDelay(uint64_t delay_ms);
 
 private:
     GreenMqtt() = default;
@@ -27,9 +31,6 @@ private:
     // 禁用拷贝
     GreenMqtt(const GreenMqtt&) = delete;
     GreenMqtt& operator=(const GreenMqtt&) = delete;
-
-    // 确认MQTT已连接
-    bool EnsureConnected();
 
     std::unique_ptr<Mqtt> mqtt_;
     uint64_t last_connect_time_ = 0;

@@ -187,6 +187,9 @@ bool GreenService::SetDeviceState() {
                 ESP_LOGI(TAG, "Greenyi: speak_count: %d", app.speak_count);
                 // 新增判断：当speak_count大于等于SPEAK_COUNT_STOP时设置设备状态为空闲
                 if (app.speak_count >= GreenConfig::SPEAK_COUNT_STOP) {
+                    // 在自动模式下，等待播放队列变为空后再启用语音处理
+                    // 这可以防止因网络抖动导致 STOP 到达过晚时音频被截断
+                    app.GetAudioService().WaitForPlaybackQueueEmpty();
                     app.SetDeviceState(kDeviceStateIdle);
                 } else {
                     app.SetDeviceState(kDeviceStateListening);
