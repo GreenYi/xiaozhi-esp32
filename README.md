@@ -19,6 +19,9 @@
 - 合并上游v2.1.0版本
 - 提前合并[PR/1675](https://github.com/78/xiaozhi-esp32/pull/1675)，修复[issues/1665](https://github.com/78/xiaozhi-esp32/issues/1665) 末尾几个字播放不全 会被打断
 - 启动时异步延迟初始化连接自定义MQTT，qos设置为2
+### v1.0.5
+- 增加自定义MQTT的重连机制
+- 合并上游v2.2.3版本
 
 ## 介绍
 
@@ -173,7 +176,7 @@ v1 的稳定版本为 1.9.2，可以通过 `git checkout v1` 来切换到 v1 版
 
 我们希望通过这个项目，能够帮助大家了解 AI 硬件开发，将当下飞速发展的大语言模型应用到实际的硬件设备中。
 
-如果你有任何想法或建议，请随时提出 Issues 或加入 [Discord](https://discord.gg/x3S4jgXHk3) 或 QQ 群：1011329060
+如果你有任何想法或建议，请随时提出 Issues 或加入 [Discord](https://discord.gg/bXqgAfRm) 或 QQ 群：1011329060
 
 ## Star History
 

@@ -8,7 +8,6 @@
 #include <freertos/task.h>
 
 #include "application.h"
-#include "system_info.h"
 #include "green_mqtt.h"
 
 #define TAG "main"

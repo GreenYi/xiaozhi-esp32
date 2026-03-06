@@ -31,7 +31,7 @@ bool GreenMqtt::Publish(const char* topic, const char* message) {
         ESP_LOGE(TAG, "Publish failed to %s", topic);
         return false;
     }
-    ESP_LOGI(TAG, "Published to %s:%s", topic, message);
+    ESP_LOGI(TAG, ">> %s", message);
     return true;
 }
 
@@ -40,23 +40,45 @@ bool GreenMqtt::Subscribe(const char* topic) {
         ESP_LOGE(TAG, "Subscribe failed: no connection");
         return false;
     }
+    return SubscribeInternal(topic);
+}
+
+bool GreenMqtt::SubscribeInternal(const char* topic) {
+    if (!mqtt_) {
+        return false;
+    }
     // 订阅主题
     if (!mqtt_->Subscribe(topic, 2)) {
         // 即使Subscribe返回false，也订阅成功了的
         // ESP_LOGE(TAG, "Subscribe failed to %s", topic);
         // return false;
     }
+    ESP_LOGI(TAG, "Subscribed: %s", topic);
+    return true;
+}
+
+void GreenMqtt::InitializeMqttCallbacks() {
+    if (!mqtt_) {
+        return;
+    }
     // 设置消息回调
     mqtt_->OnMessage([](const std::string& topic, const std::string& payload) {
         // 在这里处理接收到的消息
         if (!payload.empty()) {
             // 如果 payload 非空，则将回调的文本转语音TTS
-            ESP_LOGI(TAG, "OnMessage Callback, Received on %s:%s", topic.c_str(), payload.c_str());
+            ESP_LOGI(TAG, "<< %s", payload.c_str());
             GreenService::Instance().Process(payload);
         }
     });
-    ESP_LOGI(TAG, "Subscribed to %s", topic);
-    return true;
+
+    mqtt_->OnConnected([this]() {
+        ESP_LOGI(TAG, "MQTT connected event");
+        SubscribeInternal(GreenConfig::MQTT_TOPIC_XATXHF);
+    });
+
+    mqtt_->OnDisconnected([]() {
+        ESP_LOGI(TAG, "MQTT disconnected event");
+    });
 }
 
 void GreenMqtt::MessageReceived(const char* topic, const char* message) {
@@ -74,38 +96,38 @@ bool GreenMqtt::EnsureConnected() {
     if (mqtt_ && mqtt_->IsConnected()) {
         return true;
     }
-    auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
     // 防止频繁重连
     if (last_connect_time_ + GreenConfig::MQTT_RECONNECT_DELAY_MS > now) {
         return false;
     }
     last_connect_time_ = now;
     mqtt_ = Board::GetInstance().GetNetwork()->CreateMqtt(1);
-    if (!mqtt_ || !mqtt_->Connect(GreenConfig::MQTT_SERVER_IP, 
-                                  GreenConfig::MQTT_SERVER_PORT,
-                                  GreenConfig::MQTT_CLIENT_ID, "", "")) {
+    if (!mqtt_) {
+        ESP_LOGE(TAG, "Failed to create MQTT client");
+        return false;
+    }
+    InitializeMqttCallbacks();
+    if (!mqtt_->Connect(GreenConfig::MQTT_SERVER_IP, 
+                        GreenConfig::MQTT_SERVER_PORT,
+                        GreenConfig::MQTT_CLIENT_ID, "", "")) {
         ESP_LOGE(TAG, "Connect failed to %s:%d", 
                  GreenConfig::MQTT_SERVER_IP, 
                  GreenConfig::MQTT_SERVER_PORT);
         mqtt_.reset();
         return false;
     }
-    ESP_LOGI(TAG, "Connected to MQTT server");
-    // MQTT连接成功时订阅
-    Subscribe(GreenConfig::MQTT_TOPIC_XATXHF);
     return true;
-}
-
-static void ConnectMqttTimerCallback(void* arg)
-{
-    ESP_LOGI(TAG, "Delay elapsed, connecting to MQTT...");
-    GreenMqtt::Instance().EnsureConnected();
 }
 
 void GreenMqtt::ScheduleConnectAfterDelay(uint64_t delay_ms)
 {
     esp_timer_create_args_t timer_args = {
-        .callback = &ConnectMqttTimerCallback,
+        .callback = [](void* arg) {
+            ESP_LOGI(TAG, "Delay elapsed, connecting to MQTT...");
+            GreenMqtt::Instance().EnsureConnected();
+        },
         .arg = nullptr,
         .dispatch_method = ESP_TIMER_TASK,
         .name = "mqtt_connect_timer"
