@@ -28,6 +28,10 @@ namespace GreenConfig {
     constexpr const char* SILENCE = "0";
     // 音量，取值范围[-50,100]，100代表2.0倍音量，-50代表0.5倍音量（mix音色暂不支持）
     constexpr const char* LOUDNESS = "50";
+    // 豆包语音合成大模型，seed-tts-2.0：对应计费商品为 “语音合成2.0字符版”；seed-tts-1.0：对应计费商品为“语音合成1.0字符版”
+    constexpr const char* RESOURCE_ID = "seed-tts-2.0";
+    // 发音人，1.0(zh_female_kefunvsheng_mars_bigtts)、2.0(zh_female_vv_uranus_bigtts)
+    constexpr const char* SPEAKER = "zh_female_vv_uranus_bigtts";
 }
 
 #endif // _GREEN_H_
