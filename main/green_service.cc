@@ -190,7 +190,7 @@ bool GreenService::SetDeviceState() {
                     // 在自动模式下，等待播放队列变为空后再启用语音处理
                     // 这可以防止因网络抖动导致 STOP 到达过晚时音频被截断
                     app.GetAudioService().WaitForPlaybackQueueEmpty();
-                    app.SetDeviceState(kDeviceStateIdle);
+                    app.CloseAudioChannel();
                 } else {
                     app.SetDeviceState(kDeviceStateListening);
                 }
