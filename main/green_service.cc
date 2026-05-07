@@ -30,7 +30,7 @@ bool GreenService::SendTTSRequest(const std::string& text, std::string& response
     // 构造 URL 和请求体
     std::string url = "https://openspeech.bytedance.com/api/v3/tts/unidirectional";
     std::string payload = "{\"req_params\": {\"text\": \"" + text + "\", "
-                          "\"speaker\": \"zh_female_kefunvsheng_mars_bigtts\", "
+                          "\"speaker\": \"" + std::string(GreenConfig::SPEAKER) + "\", "
                           "\"additions\": \"{\\\"disable_markdown_filter\\\":true,\\\"silence_duration\\\":" + GreenConfig::SILENCE + ",\\\"enable_language_detector\\\":true,\\\"enable_latex_tn\\\":true,\\\"disable_default_bit_rate\\\":true,\\\"max_length_to_filter_parenthesis\\\":0,\\\"cache_config\\\":{\\\"text_type\\\":1,\\\"use_cache\\\":true}}\", "
                           "\"audio_params\": {\"format\": \"ogg_opus\", \"sample_rate\": 24000, \"loudness_rate\": " + GreenConfig::LOUDNESS + "}}}";
     ESP_LOGI(TAG, "HTTP POST URL: %s", url.c_str());
@@ -39,7 +39,7 @@ bool GreenService::SendTTSRequest(const std::string& text, std::string& response
     http->SetKeepAlive(false);
     // 设置请求头
     http->SetHeader("x-api-key", GreenConfig::API_KEY);
-    http->SetHeader("X-Api-Resource-Id", "volc.service_type.10029");
+    http->SetHeader("X-Api-Resource-Id", GreenConfig::RESOURCE_ID);
     http->SetHeader("Content-Type", "application/json");
     // 设置请求体
     http->SetContent(payload.c_str());
@@ -190,7 +190,7 @@ bool GreenService::SetDeviceState() {
                     // 在自动模式下，等待播放队列变为空后再启用语音处理
                     // 这可以防止因网络抖动导致 STOP 到达过晚时音频被截断
                     app.GetAudioService().WaitForPlaybackQueueEmpty();
-                    app.SetDeviceState(kDeviceStateIdle);
+                    app.CloseAudioChannel();
                 } else {
                     app.SetDeviceState(kDeviceStateListening);
                 }

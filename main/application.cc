@@ -1150,3 +1150,12 @@ void Application::ResetProtocol() {
     });
 }
 
+void Application::CloseAudioChannel() {
+    Schedule([this]() {
+        // Close audio channel if opened
+        if (protocol_ && protocol_->IsAudioChannelOpened()) {
+            protocol_->CloseAudioChannel(true);
+        }
+    });
+}
+
